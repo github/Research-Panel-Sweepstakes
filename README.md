@@ -8,7 +8,7 @@
 1. Download or make a copy of an existing Sweepstakes Official Rules document. The [Open Source Community Happiness Study Sweepstakes Official Rules](https://github.com/github/Research-Panel-Sweepstakes/blob/main/Open%20Source%20Community%20Happiness%20Study%20Sweepstakes%20Official%20Rules%202026.pdf) is a good template to work from.
 2. Rename the document to a title relevant to your study and make edits. Update the entry period timing, eligibility audience, link to the study, incentive amount, winners list, etc. Comb through the language carefully — a second pair of eyes is recommended.
 3. Upload your document to the public repository. Navigate to the repository's main page, click the **Add file** dropdown button (near the top right of the file list), then select **Upload files**. Drag and drop your document or use the file chooser, add a commit message, and click **Commit changes**.
-4. Add the appropriate verbiage to your survey or email copy, such as: *"For official sweepstakes rules, please see the following details [here](link)."*
+4. Add the appropriate verbiage to your survey or email copy, such as: *"For official sweepstakes rules, please see the following details here."*
 5. Link the new file to your survey or email copy using the URL from your browser. **Make sure you are linking the correct file for your specific study.**
 
 ## Watch Outs

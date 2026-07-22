@@ -1,0 +1,119 @@
+name: Official Rules Review Gate
+
+# Agent review gate for Sweepstakes Official Rules.
+# On every PR that adds or edits an Official Rules document, this validates the
+# document against the CELA-approved canonical template. If only the allowed
+# per-study fields changed (title, dates, eligibility audience, survey URL, prize/ARV,
+# winners list) the check PASSES and no fresh CELA review is required. Any change to
+# the fixed legal boilerplate, a missing section, a missing "No Purchase Necessary",
+# a paid-entry signal, or the word "raffle"/"lottery" FLAGS the PR for CELA review.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "**/*.pdf"
+      - "*.md"
+      - "*.txt"
+      - "folder/**"
+  workflow_dispatch:
+    inputs:
+      scan_all:
+        description: "Validate every Official Rules document in the repo"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install --quiet pypdf
+
+      - name: Determine documents to validate
+        id: files
+        env:
+          SCAN_ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_all }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          is_rules_doc() {
+            # Validate rules documents only: PDFs anywhere, or root-level .md/.txt.
+            # Skip repo scaffolding (README, templates/, scripts/, .github/).
+            case "$1" in
+              README.md|templates/*|scripts/*|.github/*) return 1 ;;
+              *.pdf) return 0 ;;
+              *.md|*.txt) case "$1" in */*) return 1 ;; *) return 0 ;; esac ;;
+              *) return 1 ;;
+            esac
+          }
+          : > files.txt
+          if [ "${SCAN_ALL:-false}" = "true" ]; then
+            git ls-files -z '*.pdf' '*.md' '*.txt' > _all.z || true
+            while IFS= read -r -d '' f; do is_rules_doc "$f" && printf '%s\n' "$f" >> files.txt; done < _all.z
+          else
+            git fetch --no-tags --depth=1 origin "$BASE_SHA" 2>/dev/null || true
+            while IFS= read -r f; do
+              [ -n "$f" ] || continue
+              [ -f "$f" ] || continue   # skip deletions
+              is_rules_doc "$f" && printf '%s\n' "$f" >> files.txt
+            done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          fi
+          echo "count=$(wc -l < files.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "Documents to validate:"; cat files.txt || true
+
+      - name: Run agent review gate
+        if: steps.files.outputs.count != '0'
+        id: gate
+        run: |
+          set +e
+          mapfile -t DOCS < files.txt
+          python scripts/validate_official_rules.py "${DOCS[@]}" | tee report.md
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: No rules documents changed
+        if: steps.files.outputs.count == '0'
+        run: echo "No Official Rules documents were added or modified in this PR. Nothing to validate."
+
+      - name: Post result comment
+        if: steps.files.outputs.count != '0' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- official-rules-review-gate -->';
+            const body = marker + '\n' + fs.readFileSync('report.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Enforce gate
+        if: steps.files.outputs.count != '0'
+        run: |
+          if [ "${{ steps.gate.outputs.status }}" != "0" ]; then
+            echo "::error::One or more Official Rules documents deviate from the approved template. Route to CELA for review."
+            exit 1
+          fi
+          echo "All submitted Official Rules conform to the approved template. No CELA review required."

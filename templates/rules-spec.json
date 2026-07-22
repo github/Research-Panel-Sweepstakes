@@ -1,0 +1,82 @@
+{
+  "_comment": "Machine-readable conformance spec for the agent review gate. Anchors are FIXED legal boilerplate that must survive intact in every Official Rules document; allowed_fields are the ONLY things a study is expected to change. Source of truth: 'Open Source Community Happiness Study Sweepstakes Official Rules 2026.pdf' (CELA-approved template). Token-containment threshold is intentionally forgiving to tolerate PDF text-extraction glitches.",
+  "canonical_template": "Open Source Community Happiness Study Sweepstakes Official Rules 2026.pdf",
+  "containment_threshold": 0.85,
+  "required_sections": [
+    "SPONSOR",
+    "DEFINITIONS",
+    "ENTRY PERIOD",
+    "ELIGIBILITY",
+    "HOW TO ENTER",
+    "WINNER SELECTION",
+    "PRIZES",
+    "ODDS",
+    "GENERAL CONDITIONS",
+    "USE OF YOUR ENTRY",
+    "GOVERNING LAW",
+    "WINNERS LIST"
+  ],
+  "boilerplate_anchors": {
+    "sponsor_address": "Microsoft Corporation, One Microsoft Way, Redmond, WA, 98052, USA, is the Sweepstakes sponsor",
+    "definitions_binding": "By entering you agree to be bound by these Rules",
+    "eligibility_employees_excluded": "Employees and directors of Microsoft Corporation and its subsidiaries, affiliates, advertising agencies, and Sweepstakes Parties are not eligible",
+    "void_countries": "Void in Cuba, Iran, North Korea, Sudan, Syria, Region of Crimea, Russia, and where prohibited",
+    "no_purchase_necessary": "No Purchase Necessary",
+    "authorized_account_holder": "The authorized account holder is the natural person assigned to an email address by an internet or online service provider",
+    "winner_random_drawing": "one potential prize winner will be selected by Microsoft or their Agent in a random drawing from among all eligible entries received",
+    "prize_warranty_disclaimer": "Microsoft does not give any warranty of any kind, express or implied",
+    "prize_no_substitution": "No substitution, transfer, or assignment of prize permitted, except that Microsoft reserves the right to substitute a prize of equal or greater value",
+    "prize_taxes": "Taxes on the prize, if any, are the sole responsibility of the winner",
+    "odds_based_on_entries": "The odds of winning are based on the number of eligible entries received",
+    "release_of_liability": "by entering you agree to release and hold harmless Microsoft and its respective parents, partners, subsidiaries, affiliates, employees, and agents",
+    "right_to_cancel": "We reserve the right to cancel, change, or suspend this Sweepstakes for any reason",
+    "privacy_statement": "in accordance with the Microsoft Privacy Statement",
+    "governing_law_washington": "This Sweepstakes will be governed by the laws of the State of Washington"
+  },
+  "prohibited_phrases": [
+    "raffle",
+    "lottery",
+    "entry fee",
+    "purchase is required",
+    "must purchase",
+    "purchase necessary to enter",
+    "payment required to enter"
+  ],
+  "critical_terms": {
+    "no purchase necessary": "The mandatory 'No Purchase Necessary' declaration must be present.",
+    "washington": "Governing law must remain the State of Washington.",
+    "redmond": "Sponsor must remain Microsoft Corporation, Redmond, WA.",
+    "microsoft privacy statement": "Personal data handling must reference the Microsoft Privacy Statement.",
+    "void in": "The geographic 'Void in ...' restriction must be present."
+  },
+  "allowed_fields": {
+    "title": {
+      "description": "Sweepstakes title / document name",
+      "required": true
+    },
+    "entry_period": {
+      "description": "Start and end date/time of the Entry Period (section 3)",
+      "required": true,
+      "expect_regex": "(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{1,2},?\\s+\\d{4}"
+    },
+    "eligibility_audience": {
+      "description": "Who may enter (e.g. 'open-source maintainer and/or contributor'); closed vs open",
+      "required": true
+    },
+    "survey_url": {
+      "description": "Link to the study/survey used to enter (section 5)",
+      "required": true,
+      "expect_regex": "https?://[^\\s)]+"
+    },
+    "prize_arv": {
+      "description": "Prize description and Approximate Retail Value in USD (section 7)",
+      "required": true,
+      "expect_regex": "\\$\\s?\\d[\\d,]*(\\.\\d{2})?"
+    },
+    "winners_list_contact": {
+      "description": "Email, subject line, and request window for the Winners List (section 12)",
+      "required": true,
+      "expect_regex": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+    }
+  }
+}

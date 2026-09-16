@@ -19,6 +19,7 @@ on:
       - "*.md"
       - "*.txt"
       - "folder/**"
+      - ".github/workflows/validate-official-rules.yml"
   workflow_dispatch:
     inputs:
       scan_all:

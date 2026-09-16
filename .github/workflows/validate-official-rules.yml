@@ -9,7 +9,10 @@ name: Official Rules Review Gate
 # a paid-entry signal, or the word "raffle"/"lottery" FLAGS the PR for CELA review.
 
 on:
-  pull_request:
+  # Run trusted validation and commenting code from the base branch so the
+  # scoped token can publish the gate result for pull requests from forks.
+  # Do not check out or execute the PR's workflow/scripts below.
+  pull_request_target:
     types: [opened, synchronize, reopened]
     paths:
       - "**/*.pdf"
@@ -34,6 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -49,7 +53,7 @@ jobs:
         env:
           SCAN_ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_all }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           is_rules_doc() {
@@ -67,12 +71,18 @@ jobs:
             git ls-files -z '*.pdf' '*.md' '*.txt' > _all.z || true
             while IFS= read -r -d '' f; do is_rules_doc "$f" && printf '%s\n' "$f" >> files.txt; done < _all.z
           else
-            git fetch --no-tags --depth=1 origin "$BASE_SHA" 2>/dev/null || true
+            # pull_request_target checks out trusted base-branch code. Fetch the
+            # PR ref only to extract submitted rules documents, never to execute it.
+            git fetch --no-tags --depth=1 origin \
+              "pull/${PR_NUMBER}/head:official-rules-pr-head"
             while IFS= read -r f; do
               [ -n "$f" ] || continue
-              [ -f "$f" ] || continue   # skip deletions
-              is_rules_doc "$f" && printf '%s\n' "$f" >> files.txt
-            done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+              is_rules_doc "$f" || continue
+              git cat-file -e "official-rules-pr-head:$f" 2>/dev/null || continue
+              mkdir -p "$(dirname "$f")"
+              git show "official-rules-pr-head:$f" > "$f"
+              printf '%s\n' "$f" >> files.txt
+            done < <(git diff --name-only "$BASE_SHA" official-rules-pr-head)
           fi
           echo "count=$(wc -l < files.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
           echo "Documents to validate:"; cat files.txt || true

@@ -98,15 +98,32 @@ jobs:
           script: |
             const fs = require('fs');
             const marker = '<!-- official-rules-review-gate -->';
-            const body = marker + '\n' + fs.readFileSync('report.md', 'utf8');
-            const { owner, repo } = context.repo;
-            const issue_number = context.payload.pull_request.number;
-            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
-            const existing = comments.find(c => c.body && c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            const report = fs.readFileSync('report.md', 'utf8');
+            const body = marker + '\n' + report;
+
+            // Always publish the report to the job summary so the result is
+            // readable even when the token cannot write to the PR.
+            await core.summary.addRaw(report).write();
+
+            try {
+              const { owner, repo } = context.repo;
+              const issue_number = context.payload.pull_request.number;
+              const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+              const existing = comments.find(c => c.body && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              }
+            } catch (error) {
+              // Pull requests from forks get a read-only token, so commenting
+              // fails with a 403. That must not fail the review gate: the gate
+              // result comes from the validator, not from posting a comment.
+              core.warning(
+                'Could not post the review comment (' + error.message + '). ' +
+                'This usually means the pull request comes from a fork, which ' +
+                'gets a read-only token. See the job summary for the full report.'
+              );
             }
 
       - name: Enforce gate
